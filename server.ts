@@ -3,31 +3,50 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+
 dotenv.config();
+
 async function startServer() {
   const app = express();
   const PORT = process.env.PORT || 3000;
+
   app.use(express.json({ limit: "50mb" }));
+
   // Gemini SDK initialization
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_API_KEY) {
+    console.warn("WARNING: GEMINI_API_KEY is not set in environment variables.");
+  }
+
   const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY || "",
+    apiKey: GEMINI_API_KEY || "",
     httpOptions: {
       headers: {
         'User-Agent': 'aistudio-build',
       }
     }
   });
+
   // API Routes
   app.post("/api/parse-pricelist", async (req, res) => {
     try {
+      if (!GEMINI_API_KEY) {
+        return res.status(500).json({ 
+          error: "Server Configuration Error", 
+          details: "GEMINI_API_KEY is missing on the server. Please set it in Render Environment Variables." 
+        });
+      }
+
       const { fileData, mimeType, fileName } = req.body;
       
       if (!fileData) {
         return res.status(400).json({ error: "Missing file data" });
       }
+
       console.log(`Parsing file: ${fileName} (${mimeType})`);
+
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
         contents: [
           {
             role: "user",
@@ -71,10 +90,12 @@ async function startServer() {
           }
         }
       });
+
       const jsonStr = response.text;
       if (!jsonStr) {
         throw new Error("Empty response from Gemini");
       }
+
       // Robust JSON extraction
       let extractedData;
       try {
@@ -88,6 +109,7 @@ async function startServer() {
           throw new Error("Could not find valid JSON in Gemini response");
         }
       }
+
       console.log(`Successfully extracted ${extractedData.length} items`);
       res.json(extractedData);
     } catch (error: any) {
@@ -95,6 +117,7 @@ async function startServer() {
       res.status(500).json({ error: "Failed to parse price list", details: error.message });
     }
   });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -109,8 +132,10 @@ async function startServer() {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
+
 startServer();
