@@ -21,25 +21,24 @@ async function startServer() {
   app.post("/api/parse-pricelist", async (req, res) => {
     try {
       const { fileData, mimeType, fileName } = req.body;
-
       if (!fileData) {
         return res.status(400).json({ error: "Missing file data" });
       }
-      console.log(Parsing file: ${fileName} (${mimeType}));
+      console.log(`Parsing file: ${fileName} (${mimeType})`);
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.1-flash-lite",
         contents: [
           {
             role: "user",
             parts: [
               { 
-                text: 
+                text: `
                   You are a data extraction assistant for a battery and inverter dealer. 
                   Extract product information from the provided ${fileName}.
                   Focus on: Brand, Series, Model Name, Capacity (Ah for batteries, VA/KVA for inverters), Warranty (months), DP (Dealer Price), and MRP.
                   Identify if each item is a 'battery' or an 'inverter'.
                   Return the data as a clean JSON array of products.
-                 
+                `
               },
               {
                 inlineData: {
@@ -88,7 +87,7 @@ async function startServer() {
           throw new Error("Could not find valid JSON in Gemini response");
         }
       }
-      console.log(Successfully extracted ${extractedData.length} items);
+      console.log(`Successfully extracted ${extractedData.length} items`);
       res.json(extractedData);
     } catch (error: any) {
       console.error("Gemini Error:", error.message || error);
@@ -110,7 +109,7 @@ async function startServer() {
     });
   }
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(Server running on http://localhost:${PORT});
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 startServer();
