@@ -31,58 +31,78 @@ async function startServer() {
         return res.status(400).json({ error: "Missing file data" });
       }
 
-      const interaction = await ai.interactions.create({
+      console.log(`Parsing file: ${fileName} (${mimeType})`);
+
+      const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
-        input: [
-          { 
-            type: "text",
-            text: `
-              You are a data extraction assistant for a battery and inverter dealer. 
-              Extract product information from the provided ${fileName}.
-              Focus on: Brand, Series, Model Name, Capacity (Ah for batteries, VA/KVA for inverters), Warranty (months), DP (Dealer Price), and MRP.
-              Identify if each item is a 'battery' or an 'inverter'.
-              Return the data as a clean JSON array of products.
-            ` 
-          },
+        contents: [
           {
-            type: mimeType.includes("pdf") ? "document" : "image",
-            data: fileData,
-            mime_type: mimeType || "image/jpeg"
+            role: "user",
+            parts: [
+              { 
+                text: `
+                  You are a data extraction assistant for a battery and inverter dealer. 
+                  Extract product information from the provided ${fileName}.
+                  Focus on: Brand, Series, Model Name, Capacity (Ah for batteries, VA/KVA for inverters), Warranty (months), DP (Dealer Price), and MRP.
+                  Identify if each item is a 'battery' or an 'inverter'.
+                  Return the data as a clean JSON array of products.
+                ` 
+              },
+              {
+                inlineData: {
+                  data: fileData,
+                  mimeType: mimeType || "image/jpeg"
+                }
+              }
+            ]
           }
         ],
-        response_format: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              product_type: { type: Type.STRING },
-              brand: { type: Type.STRING },
-              series: { type: Type.STRING },
-              model_name: { type: Type.STRING },
-              capacity: { type: Type.STRING },
-              warranty_months: { type: Type.NUMBER },
-              dp: { type: Type.NUMBER },
-              mrp: { type: Type.NUMBER }
-            },
-            required: ["product_type", "brand", "model_name", "dp", "mrp"]
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                product_type: { type: Type.STRING },
+                brand: { type: Type.STRING },
+                series: { type: Type.STRING },
+                model_name: { type: Type.STRING },
+                capacity: { type: Type.STRING },
+                warranty_months: { type: Type.NUMBER },
+                dp: { type: Type.NUMBER },
+                mrp: { type: Type.NUMBER }
+              },
+              required: ["product_type", "brand", "model_name", "dp", "mrp"]
+            }
           }
         }
       });
 
-      const lastStep = interaction.steps.at(-1);
-      let jsonStr = '';
-      if (lastStep && lastStep.type === 'model_output') {
-        const textContent = lastStep.content?.find(c => c.type === 'text');
-        if (textContent) {
-          jsonStr = textContent.text.trim();
+      const jsonStr = response.text;
+      if (!jsonStr) {
+        throw new Error("Empty response from Gemini");
+      }
+
+      // Robust JSON extraction
+      let extractedData;
+      try {
+        extractedData = JSON.parse(jsonStr);
+      } catch (e) {
+        console.warn("Direct JSON parse failed, trying regex extraction");
+        const jsonMatch = jsonStr.match(/\[.*\]/s) || jsonStr.match(/\{.*\}/s);
+        if (jsonMatch) {
+          extractedData = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("Could not find valid JSON in Gemini response");
         }
       }
-      
-      const extractedData = JSON.parse(jsonStr || "[]");
+
+      console.log(`Successfully extracted ${extractedData.length} items`);
       res.json(extractedData);
-    } catch (error) {
-      console.error("Gemini Error:", error);
-      res.status(500).json({ error: "Failed to parse price list" });
+    } catch (error: any) {
+      console.error("Gemini Error:", error.message || error);
+      res.status(500).json({ error: "Failed to parse price list", details: error.message });
     }
   });
 
