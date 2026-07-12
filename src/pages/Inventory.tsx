@@ -54,7 +54,8 @@ export const InventoryPage: React.FC = () => {
           setExtractedData(data);
           setIsModalOpen(true);
         } else {
-          alert("Failed to parse file. Please try again.");
+          const errorData = await response.json().catch(() => ({}));
+          alert(errorData.details ? `Failed to parse: ${errorData.details}` : "Failed to parse file. Please check if the file is clear and readable.");
         }
       };
       reader.readAsDataURL(file);
