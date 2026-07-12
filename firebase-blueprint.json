@@ -1,0 +1,85 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user with role-based access control.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["super_admin", "staff"] },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Battery or inverter product details.",
+      "type": "object",
+      "properties": {
+        "product_type": { "type": "string", "enum": ["battery", "inverter"] },
+        "brand": { "type": "string" },
+        "series": { "type": "string" },
+        "model_name": { "type": "string" },
+        "capacity": { "type": "string" },
+        "warranty_months": { "type": "integer" },
+        "dp": { "type": "number" },
+        "mrp": { "type": "number" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["product_type", "brand", "model_name", "dp", "mrp"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer contact and profile details.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "mobile": { "type": "string" },
+        "alternate_mobile": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "pincode": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "mobile"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "A completed sale transaction.",
+      "type": "object",
+      "properties": {
+        "customer_id": { "type": "string" },
+        "product_id": { "type": "string" },
+        "mrp": { "type": "number" },
+        "original_dp": { "type": "number" },
+        "dp_discount_amount": { "type": "number" },
+        "new_dp": { "type": "number" },
+        "has_scrap": { "type": "boolean" },
+        "scrap_weight_kg": { "type": "number" },
+        "scrap_rate_per_kg": { "type": "number" },
+        "scrap_value": { "type": "number" },
+        "effective_dp": { "type": "number" },
+        "margin_amount": { "type": "number" },
+        "margin_percent": { "type": "number" },
+        "selling_price": { "type": "number" },
+        "customer_saving_amount": { "type": "number" },
+        "customer_saving_percent": { "type": "number" },
+        "purchase_date": { "type": "string", "format": "date-time" },
+        "warranty_expiry_date": { "type": "string", "format": "date-time" },
+        "invoice_number": { "type": "string" },
+        "created_by": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customer_id", "product_id", "selling_price", "purchase_date"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": "User", "description": "User profile and role." },
+    "/products/{productId}": { "schema": "Product", "description": "Product master data." },
+    "/customers/{customerId}": { "schema": "Customer", "description": "Customer data." },
+    "/sales/{saleId}": { "schema": "Sale", "description": "Sale records." }
+  }
+}
