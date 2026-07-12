@@ -89,7 +89,71 @@ export const WarrantyPage: React.FC = () => {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        {/* Mobile View (Cards) */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {loading ? (
+            <div className="p-8 text-center text-slate-400 font-medium">Loading warranty data...</div>
+          ) : filteredSales.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 font-medium">No warranty records found.</div>
+          ) : (
+            filteredSales.map((s) => {
+              const customer = customers[s.customer_id];
+              const product = products[s.product_id];
+              return (
+                <div key={s.id} className="p-4 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <div className="font-black text-slate-900 leading-tight">{customer?.name}</div>
+                      <div className="text-xs text-slate-500 font-medium">
+                        {product?.brand} {product?.model_name}
+                      </div>
+                      <div className="font-mono text-[10px] text-slate-400 uppercase tracking-tighter">
+                        INV: {s.invoice_number}
+                      </div>
+                    </div>
+                    <div className={cn(
+                      "flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider",
+                      s.status === 'active' ? "bg-green-100 text-green-700" :
+                      s.status === 'expiring-soon' ? "bg-amber-100 text-amber-700" :
+                      "bg-red-100 text-red-700"
+                    )}>
+                      {s.status === 'active' && <CheckCircle2 size={10} />}
+                      {s.status === 'expiring-soon' && <ShieldAlert size={10} />}
+                      {s.status === 'expired' && <XCircle size={10} />}
+                      {s.status.replace('-', ' ')}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-50">
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Expires On</p>
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                        <Calendar size={14} className="text-slate-400" />
+                        {new Date(s.warranty_expiry_date).toLocaleDateString()}
+                      </div>
+                      {s.isExpiringSoon && (
+                        <p className="text-[9px] font-black text-amber-600 uppercase tracking-tighter">Due Soon</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Contact</p>
+                      <a 
+                        href={`tel:${customer?.mobile}`}
+                        className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:underline"
+                      >
+                        <Phone size={14} />
+                        {customer?.mobile}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop View (Table) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
